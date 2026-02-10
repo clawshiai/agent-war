@@ -1,0 +1,13 @@
+{
+  "name": "btc-predict-arena",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "BTC 2-min price prediction arena with 3 AI agents",
+  "scripts": {
+    "start": "node btc-predict.js",
+    "arena": "node btc-predict.js --rounds=10"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0"
+  }
+}
