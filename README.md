@@ -2,67 +2,72 @@
 
 AI agents compete head-to-head in prediction arenas. May the best model win.
 
-## How It Works
-
-Multiple AI agents with different **souls** (strategies/personalities) are given the same market data and asked to predict what happens next. After a fixed window, we check who was right.
-
-```
-  Sentinel ──┐
-              ├── Arena ──▶ Wait ──▶ Score
-  Momentum ──┤
-              │
-  Contrarian ─┘ (sees others first)
-```
-
 ## Structure
 
 ```
 agent-war/
-├── arenas/           # Battle arenas (different prediction games)
-│   └── btc-predict/  # BTC 2-min price direction arena
-├── souls/            # Agent personalities & strategies
-└── references/       # Analysis, results, learnings
+├── core/                 # Reusable arena engine
+│   ├── arena.js          # Generic arena runner (phases, scoring, leaderboard)
+│   ├── indicators.js     # Technical indicators (SMA, RSI, momentum, volatility)
+│   └── utils.js          # Colors, sleep, fetch with retry
+├── data/                 # Data source adapters
+│   ├── coinbase.js       # Spot price fetcher
+│   └── kraken.js         # OHLCV candles + order book
+├── souls/                # Agent personalities (plug & play)
+│   ├── sentinel.js       # Sentiment — weighs all signals
+│   ├── contrarian.js     # Fades the crowd — sees Phase 1 first
+│   └── momentum.js       # Pure trend following
+├── arenas/               # Battle configurations
+│   └── btc-predict/      # BTC 2-min direction arena
+│       └── btc-predict.js
+└── references/           # Results & analysis
 ```
 
-## Arenas
-
-### BTC Predict
-
-3 agents predict BTC price direction (UP/DOWN) over a 2-minute window.
-
-- **Data**: Coinbase spot price + Kraken candles & order book
-- **Model**: Claude Haiku 4.5
-- **Agents**: Sentinel (sentiment), Momentum (trend), Contrarian (fade)
+## Quick Start
 
 ```bash
-cd arenas/btc-predict
 npm install
-ANTHROPIC_API_KEY=sk-... node btc-predict.js --rounds=10
+ANTHROPIC_API_KEY=sk-... npm run btc         # 3 rounds
+ANTHROPIC_API_KEY=sk-... npm run btc:10       # 10 rounds
 ```
 
-See [arenas/btc-predict/](arenas/btc-predict/) for details.
+## How It Works
 
-## Souls
+```
+Phase 1: Sentinel + Momentum predict independently (parallel)
+Phase 2: Contrarian sees Phase 1 results, then decides
+Score:   Wait 2 min → check actual price → score all agents
+```
 
-Each agent has a distinct **soul** — a strategy and personality that defines how it interprets data.
+## Adding a New Soul
 
-| Soul | Strategy | Edge |
-|------|----------|------|
-| Sentinel | Weigh all indicators | Balanced, safe |
-| Momentum | Pure trend following | Strong in trends |
-| Contrarian | Bet against the crowd | Strong in chop |
+Create `souls/mysoul.js`:
 
-See [souls/](souls/) for full agent definitions.
+```js
+import { Y } from "../core/utils.js";
 
-## Results
+export default {
+  name: "MyAgent",
+  color: Y,
+  strategy: "my-strategy",
+  desc: "Description of how this agent thinks...",
+  // isContrarian: true  ← set this to make it Phase 2
+};
+```
 
-See [references/](references/) for arena results and analysis.
+Then add it to any arena's agent list.
 
-## Adding New Arenas
+## Adding a New Arena
 
-Create a new folder under `arenas/` with:
-1. Entry script (e.g. `predict.js`)
-2. `package.json` with dependencies
-3. `README.md` explaining the arena rules
+Create `arenas/my-arena/my-arena.js` and call `runArena()` with:
 
-Agents are imported from `souls/` so any arena can mix and match.
+- **fetchData** — get market data from any source
+- **calcIndicators** — compute signals from raw data
+- **buildPrompt** — format the LLM prompt per agent
+- **judge** — determine the correct answer after waiting
+
+See `arenas/btc-predict/btc-predict.js` for a complete example.
+
+## Adding a New Data Source
+
+Create `data/mysource.js` and export async fetcher functions. Use `fetchRetry` from `core/utils.js` for resilience.

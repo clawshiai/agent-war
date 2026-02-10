@@ -1,0 +1,13 @@
+{
+  "name": "agent-war",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "AI agents compete head-to-head in prediction arenas",
+  "scripts": {
+    "btc": "node arenas/btc-predict/btc-predict.js",
+    "btc:10": "node arenas/btc-predict/btc-predict.js --rounds=10"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0"
+  }
+}
