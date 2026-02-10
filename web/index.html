@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Arena — Live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #000000;
+    --surface: #0a0a0a;
+    --surface-hover: #111111;
+    --border: #1a1a1a;
+    --accent: #00D990;
+    --accent-hover: #33E3A6;
+    --text: #ffffff;
+    --muted: #888888;
+    --subtle: #444444;
+    --success: #22c55e;
+    --danger: #ef4444;
+    --sentinel: #22c55e;
+    --contrarian: #d946ef;
+    --momentum: #06b6d4;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+  }
+
+  /* NAV */
+  nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 24px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: rgba(0,0,0,0.9);
+    backdrop-filter: blur(8px);
+    z-index: 100;
+  }
+
+  .nav-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .nav-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--accent);
+  }
+
+  .live-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: rgba(0,217,144,0.1);
+    border: 1px solid rgba(0,217,144,0.3);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  .live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .round-info {
+    font-size: 14px;
+    color: var(--muted);
+    font-family: 'Space Grotesk', sans-serif;
+  }
+
+  /* CONTAINER */
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  /* PRICE BANNER */
+  .price-banner {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-bottom: 20px;
+  }
+
+  .price-main {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 36px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .price-indicators {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .price-indicators span { white-space: nowrap; }
+  .bullish { color: var(--success); }
+  .bearish { color: var(--danger); }
+
+  /* STATUS BAR */
+  .status-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 24px;
+    margin-bottom: 20px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .status-text {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    position: relative;
+    z-index: 1;
+  }
+
+  .progress-bar {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 3px;
+    background: var(--accent);
+    transition: width 1s linear;
+  }
+
+  .status-bar.result-up { border-color: rgba(34,197,94,0.4); }
+  .status-bar.result-down { border-color: rgba(239,68,68,0.4); }
+
+  /* AGENT CARDS */
+  .agents-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .agent-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    border-left: 4px solid var(--border);
+    transition: all 0.3s ease;
+  }
+
+  .agent-card.sentinel { border-left-color: var(--sentinel); }
+  .agent-card.contrarian { border-left-color: var(--contrarian); }
+  .agent-card.momentum { border-left-color: var(--momentum); }
+
+  .agent-card.active { transform: scale(1.02); }
+
+  .agent-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .agent-name {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+  }
+
+  .agent-name.sentinel { color: var(--sentinel); }
+  .agent-name.contrarian { color: var(--contrarian); }
+  .agent-name.momentum { color: var(--momentum); }
+
+  .phase-badge {
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .phase-badge.phase1 { background: rgba(0,217,144,0.15); color: var(--accent); }
+  .phase-badge.phase2 { background: rgba(217,70,239,0.15); color: var(--contrarian); }
+
+  .agent-strategy {
+    font-size: 12px;
+    color: var(--subtle);
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .prediction-area {
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .prediction-waiting {
+    color: var(--subtle);
+    font-size: 14px;
+    font-style: italic;
+    text-align: center;
+  }
+
+  .prediction-direction {
+    display: inline-block;
+    padding: 6px 16px;
+    border-radius: 8px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    margin-bottom: 8px;
+    animation: slideUp 0.3s ease;
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .dir-up { background: rgba(34,197,94,0.15); color: var(--success); }
+  .dir-down { background: rgba(239,68,68,0.15); color: var(--danger); }
+
+  .prediction-confidence {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+
+  .prediction-reasoning {
+    font-size: 12px;
+    color: var(--subtle);
+    line-height: 1.4;
+  }
+
+  .agent-record {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .agent-rate {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+  }
+
+  .correct-mark { color: var(--success); }
+  .wrong-mark { color: var(--danger); }
+
+  /* LEADERBOARD */
+  .leaderboard {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-bottom: 20px;
+  }
+
+  .leaderboard h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 16px;
+  }
+
+  .lb-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+  }
+
+  .lb-rank { width: 28px; font-size: 16px; text-align: center; }
+  .lb-name { width: 100px; font-weight: 600; font-size: 14px; }
+  .lb-record { width: 50px; font-size: 13px; color: var(--muted); }
+
+  .lb-bar-container {
+    flex: 1;
+    height: 8px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .lb-bar {
+    height: 100%;
+    border-radius: 4px;
+    background: var(--accent);
+    transition: width 0.5s ease;
+  }
+
+  .lb-rate {
+    width: 45px;
+    text-align: right;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+  }
+
+  /* ROUND LOG */
+  .round-log {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+  }
+
+  .round-log h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+  }
+
+  .log-entries {
+    max-height: 250px;
+    overflow-y: auto;
+  }
+
+  .log-entry {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--muted);
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .log-entry:last-child { border-bottom: none; }
+  .log-round { color: var(--subtle); width: 60px; font-weight: 600; }
+  .log-price { flex: 1; }
+  .log-agents { display: flex; gap: 8px; }
+  .log-agent-correct { font-weight: 600; }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--subtle);
+  }
+
+  .empty-state h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 24px;
+    margin-bottom: 8px;
+    color: var(--muted);
+  }
+
+  /* MOBILE */
+  @media (max-width: 768px) {
+    .agents-grid { grid-template-columns: 1fr; }
+    .price-main { font-size: 28px; }
+    .price-indicators { gap: 8px; }
+    nav { padding: 12px 16px; }
+    .container { padding: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-left">
+    <span class="nav-title">Agent Arena</span>
+    <span class="live-badge"><span class="live-dot"></span>LIVE</span>
+  </div>
+  <span class="round-info" id="round-info">Connecting...</span>
+</nav>
+
+<div class="container">
+  <div id="main-content">
+    <div class="empty-state" id="empty-state">
+      <h2>Waiting for arena...</h2>
+      <p>Agents will appear when the next round starts</p>
+    </div>
+  </div>
+
+  <div id="arena-content" style="display:none">
+    <!-- Price Banner -->
+    <div class="price-banner" id="price-banner">
+      <div class="price-main" id="price-main">$--</div>
+      <div class="price-indicators" id="price-indicators"></div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar" id="status-bar">
+      <div class="status-text" id="status-text">Waiting...</div>
+      <div class="progress-bar" id="progress-bar"></div>
+    </div>
+
+    <!-- Agent Cards -->
+    <div class="agents-grid">
+      <div class="agent-card sentinel" id="card-Sentinel">
+        <div class="agent-header">
+          <span class="agent-name sentinel">Sentinel</span>
+          <span class="phase-badge phase1">Phase 1</span>
+        </div>
+        <div class="agent-strategy">Sentiment Analysis</div>
+        <div class="prediction-area" id="pred-Sentinel">
+          <div class="prediction-waiting">Waiting for data...</div>
+        </div>
+        <div class="agent-record">
+          <span id="record-Sentinel">0/0</span>
+          <span class="agent-rate" id="rate-Sentinel">--</span>
+        </div>
+      </div>
+
+      <div class="agent-card contrarian" id="card-Contrarian">
+        <div class="agent-header">
+          <span class="agent-name contrarian">Contrarian</span>
+          <span class="phase-badge phase2">Phase 2</span>
+        </div>
+        <div class="agent-strategy">Fade the Crowd</div>
+        <div class="prediction-area" id="pred-Contrarian">
+          <div class="prediction-waiting">Waits for Phase 1...</div>
+        </div>
+        <div class="agent-record">
+          <span id="record-Contrarian">0/0</span>
+          <span class="agent-rate" id="rate-Contrarian">--</span>
+        </div>
+      </div>
+
+      <div class="agent-card momentum" id="card-Momentum">
+        <div class="agent-header">
+          <span class="agent-name momentum">Momentum</span>
+          <span class="phase-badge phase1">Phase 1</span>
+        </div>
+        <div class="agent-strategy">Trend Following</div>
+        <div class="prediction-area" id="pred-Momentum">
+          <div class="prediction-waiting">Waiting for data...</div>
+        </div>
+        <div class="agent-record">
+          <span id="record-Momentum">0/0</span>
+          <span class="agent-rate" id="rate-Momentum">--</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Leaderboard -->
+    <div class="leaderboard">
+      <h3>Leaderboard</h3>
+      <div id="leaderboard-body"></div>
+    </div>
+
+    <!-- Round Log -->
+    <div class="round-log">
+      <h3>Round History</h3>
+      <div class="log-entries" id="round-log">
+        <div class="log-entry" style="color:var(--subtle)">No rounds completed yet</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const medals = ['\u{1F947}', '\u{1F948}', '\u{1F949}', ' '];
+const agentColors = { Sentinel: '#22c55e', Contrarian: '#d946ef', Momentum: '#06b6d4', majority: '#00D990' };
+
+let state = {
+  round: 0, total: 0,
+  price: 0, indicators: {},
+  phase1: [], phase2: [],
+  majority: null, votes: null,
+  countdownTotal: 0, countdownRemaining: 0,
+  result: null, scores: null,
+  scoreboard: [],
+  roundLog: []
+};
+
+let countdownInterval = null;
+
+// SSE Connection
+const baseUrl = location.pathname.replace(/\/$/, '');
+const evtSource = new EventSource(baseUrl + '/events');
+
+evtSource.addEventListener('state', (e) => {
+  const snap = JSON.parse(e.data);
+  if (snap['arena:start']) {
+    showArena();
+  }
+  if (snap['round:start']) {
+    state.round = snap['round:start'].round;
+    state.total = snap['round:start'].total;
+    showArena();
+  }
+  if (snap['round:data']) {
+    state.price = snap['round:data'].price;
+    state.indicators = snap['round:data'].indicators;
+    renderPrice();
+  }
+  if (snap['round:phase1']) {
+    state.phase1 = snap['round:phase1'].predictions;
+    renderPredictions(state.phase1);
+  }
+  if (snap['round:phase2']) {
+    state.phase2 = snap['round:phase2'].predictions;
+    renderPredictions(state.phase2);
+  }
+  if (snap['round:majority']) {
+    state.majority = snap['round:majority'].majority;
+    state.votes = snap['round:majority'].votes;
+  }
+  if (snap['round:result']) {
+    state.result = snap['round:result'];
+    renderResult();
+  }
+  if (snap['round:scores']) {
+    state.scoreboard = snap['round:scores'].scoreboard;
+    renderLeaderboard();
+    renderScoreMarks(snap['round:scores'].scores);
+  }
+  if (snap['round:countdown']) {
+    startLocalCountdown(snap['round:countdown'].remaining, snap['round:countdown'].total);
+  }
+  if (snap['round:tick']) {
+    state.countdownRemaining = snap['round:tick'].remaining;
+  }
+  renderRoundInfo();
+});
+
+evtSource.addEventListener('arena:start', (e) => {
+  showArena();
+});
+
+evtSource.addEventListener('round:start', (e) => {
+  const d = JSON.parse(e.data);
+  state.round = d.round;
+  state.total = d.total;
+  state.phase1 = [];
+  state.phase2 = [];
+  state.result = null;
+  state.majority = null;
+  state.scores = null;
+  clearPredictions();
+  setStatus('Fetching market data...');
+  clearStatusClass();
+  renderRoundInfo();
+  showArena();
+});
+
+evtSource.addEventListener('round:data', (e) => {
+  const d = JSON.parse(e.data);
+  state.price = d.price;
+  state.indicators = d.indicators;
+  renderPrice();
+  setStatus('Phase 1: Sentinel & Momentum predicting...');
+});
+
+evtSource.addEventListener('round:phase1', (e) => {
+  const d = JSON.parse(e.data);
+  state.phase1 = d.predictions;
+  renderPredictions(d.predictions);
+  setStatus('Phase 2: Contrarian analyzing Phase 1 results...');
+});
+
+evtSource.addEventListener('round:phase2:start', () => {
+  setStatus('Phase 2: Contrarian betting against the crowd...');
+});
+
+evtSource.addEventListener('round:phase2', (e) => {
+  const d = JSON.parse(e.data);
+  state.phase2 = d.predictions;
+  renderPredictions(d.predictions);
+});
+
+evtSource.addEventListener('round:majority', (e) => {
+  const d = JSON.parse(e.data);
+  state.majority = d.majority;
+  state.votes = d.votes;
+  const color = d.majority === 'UP' ? 'var(--success)' : 'var(--danger)';
+  setStatus(`Majority: <span style="color:${color};font-weight:700">${d.majority}</span> (${d.votes.UP} UP vs ${d.votes.DOWN} DOWN) — waiting for result...`);
+});
+
+evtSource.addEventListener('round:countdown', (e) => {
+  const d = JSON.parse(e.data);
+  startLocalCountdown(d.remaining, d.total);
+});
+
+evtSource.addEventListener('round:tick', (e) => {
+  const d = JSON.parse(e.data);
+  state.countdownRemaining = d.remaining;
+});
+
+evtSource.addEventListener('round:result', (e) => {
+  const d = JSON.parse(e.data);
+  state.result = d;
+  stopLocalCountdown();
+  renderResult();
+});
+
+evtSource.addEventListener('round:scores', (e) => {
+  const d = JSON.parse(e.data);
+  state.scoreboard = d.scoreboard;
+  state.scores = d.scores;
+  renderLeaderboard();
+  renderScoreMarks(d.scores);
+
+  // Add to round log
+  const logEntry = {
+    round: state.round,
+    entry: state.result?.entryPrice,
+    exit: state.result?.exitPrice,
+    change: state.result?.change,
+    actual: state.result?.actual,
+    scores: d.scores
+  };
+  state.roundLog.unshift(logEntry);
+  renderLog();
+});
+
+evtSource.addEventListener('round:skip', () => {
+  setStatus('Round skipped (data error). Retrying...');
+});
+
+// Render functions
+function showArena() {
+  document.getElementById('empty-state')?.remove();
+  document.getElementById('arena-content').style.display = 'block';
+}
+
+function renderRoundInfo() {
+  const t = state.total > 9000 ? '\u221E' : state.total;
+  document.getElementById('round-info').textContent = `Round ${state.round}/${t}`;
+}
+
+function renderPrice() {
+  document.getElementById('price-main').textContent = `$${state.price.toLocaleString()}`;
+  const ind = state.indicators;
+  if (!ind.smaSignal) return;
+  const smaClass = ind.smaSignal === 'BULLISH' ? 'bullish' : 'bearish';
+  const momClass = parseFloat(ind.momentum) >= 0 ? 'bullish' : 'bearish';
+  document.getElementById('price-indicators').innerHTML =
+    `<span>SMA: <span class="${smaClass}">${ind.smaSignal}</span></span>` +
+    `<span>RSI: ${ind.rsi}</span>` +
+    `<span>Momentum: <span class="${momClass}">${ind.momentum}%</span></span>` +
+    `<span>Volatility: $${ind.volatility}</span>` +
+    (ind.orderBook ? `<span>Book: ${ind.orderBook.ratio}% buy</span>` : '') +
+    `<span>Vol trend: ${ind.volumeTrend}</span>`;
+}
+
+function clearPredictions() {
+  ['Sentinel', 'Contrarian', 'Momentum'].forEach(name => {
+    const el = document.getElementById(`pred-${name}`);
+    if (el) el.innerHTML = '<div class="prediction-waiting">' +
+      (name === 'Contrarian' ? 'Waits for Phase 1...' : 'Waiting for data...') + '</div>';
+    document.getElementById(`card-${name}`)?.classList.remove('active');
+  });
+}
+
+function renderPredictions(preds) {
+  for (const p of preds) {
+    const el = document.getElementById(`pred-${p.name}`);
+    if (!el) continue;
+    const dirClass = p.direction === 'UP' ? 'dir-up' : 'dir-down';
+    el.innerHTML =
+      `<div class="prediction-direction ${dirClass}">${p.direction}</div>` +
+      `<div class="prediction-confidence">Confidence: ${(p.confidence * 100).toFixed(0)}%</div>` +
+      `<div class="prediction-reasoning">${p.reasoning}</div>`;
+    document.getElementById(`card-${p.name}`)?.classList.add('active');
+    setTimeout(() => document.getElementById(`card-${p.name}`)?.classList.remove('active'), 500);
+  }
+}
+
+function renderScoreMarks(scores) {
+  if (!scores) return;
+  for (const s of scores) {
+    const el = document.getElementById(`pred-${s.name}`);
+    if (!el) continue;
+    const mark = s.correct
+      ? '<span class="correct-mark">CORRECT</span>'
+      : '<span class="wrong-mark">WRONG</span>';
+    el.innerHTML += `<div style="margin-top:8px;font-weight:600;font-size:13px">${mark}</div>`;
+  }
+}
+
+function renderResult() {
+  const r = state.result;
+  if (!r) return;
+  const color = r.actual === 'UP' ? 'var(--success)' : 'var(--danger)';
+  const sign = r.change >= 0 ? '+' : '';
+  const bar = document.getElementById('status-bar');
+  bar.className = 'status-bar ' + (r.actual === 'UP' ? 'result-up' : 'result-down');
+  document.getElementById('status-text').innerHTML =
+    `<span style="color:${color};font-size:20px">${r.actual}</span> &nbsp; ` +
+    `$${r.entryPrice.toLocaleString()} → $${r.exitPrice.toLocaleString()} &nbsp; ` +
+    `<span style="color:${color}">${sign}$${r.change.toFixed(2)} (${sign}${r.changePct.toFixed(4)}%)</span>`;
+  document.getElementById('progress-bar').style.width = '0%';
+}
+
+function clearStatusClass() {
+  document.getElementById('status-bar').className = 'status-bar';
+}
+
+function setStatus(html) {
+  document.getElementById('status-text').innerHTML = html;
+}
+
+function startLocalCountdown(remaining, total) {
+  stopLocalCountdown();
+  state.countdownRemaining = remaining;
+  state.countdownTotal = total;
+  updateCountdownDisplay();
+  document.getElementById('progress-bar').style.transition = 'none';
+  document.getElementById('progress-bar').style.width = (remaining / total * 100) + '%';
+  requestAnimationFrame(() => {
+    document.getElementById('progress-bar').style.transition = `width ${remaining}s linear`;
+    document.getElementById('progress-bar').style.width = '0%';
+  });
+  countdownInterval = setInterval(() => {
+    state.countdownRemaining--;
+    if (state.countdownRemaining <= 0) { stopLocalCountdown(); return; }
+    updateCountdownDisplay();
+  }, 1000);
+}
+
+function stopLocalCountdown() {
+  if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+}
+
+function updateCountdownDisplay() {
+  const s = state.countdownRemaining;
+  const min = Math.floor(s / 60);
+  const sec = (s % 60).toString().padStart(2, '0');
+  setStatus(`Waiting for result... <span style="font-family:'Space Grotesk';font-size:20px">${min}:${sec}</span>`);
+}
+
+function renderLeaderboard() {
+  const body = document.getElementById('leaderboard-body');
+  if (!state.scoreboard || state.scoreboard.length === 0) return;
+  body.innerHTML = state.scoreboard.map((entry, i) => {
+    const color = agentColors[entry.name] || 'var(--accent)';
+    const rateColor = entry.rate >= 50 ? 'var(--success)' : 'var(--danger)';
+    return `<div class="lb-row">
+      <span class="lb-rank">${medals[i] || ''}</span>
+      <span class="lb-name" style="color:${color}">${entry.name}</span>
+      <span class="lb-record">${entry.wins}/${entry.total}</span>
+      <div class="lb-bar-container"><div class="lb-bar" style="width:${entry.rate}%;background:${color}"></div></div>
+      <span class="lb-rate" style="color:${rateColor}">${entry.rate.toFixed(0)}%</span>
+    </div>`;
+  }).join('');
+
+  // Update agent card records
+  for (const entry of state.scoreboard) {
+    const recEl = document.getElementById(`record-${entry.name}`);
+    const rateEl = document.getElementById(`rate-${entry.name}`);
+    if (recEl) recEl.textContent = `${entry.wins}/${entry.total}`;
+    if (rateEl) {
+      rateEl.textContent = entry.total > 0 ? `${entry.rate.toFixed(0)}%` : '--';
+      rateEl.style.color = entry.rate >= 50 ? 'var(--success)' : 'var(--danger)';
+    }
+  }
+}
+
+function renderLog() {
+  const el = document.getElementById('round-log');
+  if (state.roundLog.length === 0) return;
+  el.innerHTML = state.roundLog.map(log => {
+    const color = log.actual === 'UP' ? 'var(--success)' : 'var(--danger)';
+    const sign = (log.change || 0) >= 0 ? '+' : '';
+    const agentMarks = (log.scores || []).map(s => {
+      const c = s.correct ? agentColors[s.name] : 'var(--subtle)';
+      return `<span style="color:${c}" title="${s.name}: ${s.direction}">${s.name[0]}</span>`;
+    }).join(' ');
+    return `<div class="log-entry">
+      <span class="log-round">R${log.round}</span>
+      <span class="log-price">$${(log.entry||0).toLocaleString()} → $${(log.exit||0).toLocaleString()} <span style="color:${color}">${sign}$${(log.change||0).toFixed(2)}</span></span>
+      <span style="color:${color};font-weight:700;width:50px">${log.actual}</span>
+      <span class="log-agents">${agentMarks}</span>
+    </div>`;
+  }).join('');
+}
+
+// Connection status
+evtSource.onerror = () => {
+  document.getElementById('round-info').textContent = 'Reconnecting...';
+};
+</script>
+</body>
+</html>
